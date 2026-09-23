@@ -1,0 +1,7 @@
+# Actions the local model is permitted to request.
+# Remove an action here to disable it.
+list_files
+read_file
+write_file
+create_folder
+run_python
