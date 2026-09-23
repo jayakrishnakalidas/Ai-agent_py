@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,7 +20,7 @@ from tools.python_tools import PythonTools
 from tools.lmstudio import LMStudioClient, LMStudioError
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_API = os.getenv("LM_STUDIO_URL", "http://192.168.18.9:1234/v1")
+DEFAULT_API = os.getenv("LM_STUDIO_URL", "http://127.0.0.1:1234/v1")
 
 
 def banner() -> None:
@@ -49,6 +50,48 @@ class AgentMemory:
         except OSError:
             pass
 
+    def clear(self) -> None:
+        self.events = []
+        try:
+            self.path.write_text("[]", encoding="utf-8")
+        except OSError:
+            pass
+
+
+@dataclass
+class ChatMemory:
+    """Persistent conversation turns, scoped to one workspace."""
+    path: Path
+    messages: list[dict[str, str]] = field(default_factory=list)
+
+    def load(self) -> None:
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                self.messages = [entry for entry in data if isinstance(entry, dict)
+                    and entry.get("role") in {"user", "assistant"}
+                    and isinstance(entry.get("content"), str)][-80:]
+        except (OSError, json.JSONDecodeError):
+            self.messages = []
+
+    def add(self, role: str, content: str) -> None:
+        self.messages.append({"role": role, "content": content})
+        self.messages = self.messages[-80:]
+        try:
+            self.path.write_text(json.dumps(self.messages, indent=2, ensure_ascii=False), encoding="utf-8")
+        except OSError:
+            pass
+
+    def recent(self) -> list[dict[str, str]]:
+        return self.messages[-20:]
+
+    def clear(self) -> None:
+        self.messages = []
+        try:
+            self.path.write_text("[]", encoding="utf-8")
+        except OSError:
+            pass
+
 
 class Agent:
     def __init__(self, workspace: Path, api_url: str, model: str | None = None) -> None:
@@ -59,6 +102,8 @@ class Agent:
         self.client = LMStudioClient(api_url, model)
         self.memory = AgentMemory(self.workspace / ".agent_memory.json")
         self.memory.load()
+        self.chat_memory = ChatMemory(self.workspace / ".agent_chat.json")
+        self.chat_memory.load()
         self.skills = self._load_skills()
         self.allowed_commands = self._load_commands()
 
@@ -124,7 +169,7 @@ class Agent:
         prompt = self._system_prompt()
         self.log("Planning", request)
         try:
-            response = self.client.chat(prompt, request)
+            response = self.client.chat(prompt, request, self.chat_memory.recent())
         except LMStudioError as error:
             print(f"[LM Studio error] {error}")
             return
@@ -139,12 +184,71 @@ class Agent:
             return
         if plan.get("message"):
             print("[AI] " + str(plan["message"]))
+        self.chat_memory.add("user", request)
+        self.chat_memory.add("assistant", str(plan.get("message", "Completed requested actions.")))
         for action in actions:
             if not isinstance(action, dict):
                 print("[AI] Skipped invalid action.")
                 continue
             result = self.execute_action(action)
             print("[Result] " + result[:4000])
+
+    def chat(self, message: str) -> str:
+        """ChatGPT-style conversation with safe, read-only file context."""
+        file_context = self._chat_file_context(message)
+        system = f"""You are D_F AI Agent Studio, a concise and helpful local assistant.
+You are talking about the user's workspace at {self.workspace}. In chat mode you have
+read-only access to a specifically named text file when its content is supplied in the
+user message. If it is supplied, you MUST explain its actual contents and must not say
+you cannot access files. Suggest Run mode when the user wants workspace changes."""
+        user_message = message
+        history = self.chat_memory.recent()
+        if file_context:
+            # A fresh context prevents older model refusals from overriding a file that
+            # has just been read by the application.
+            user_message += "\n\nIMPORTANT: The application has already read this file. " \
+                            "Explain it simply using the supplied contents.\n" + file_context
+            history = []
+        try:
+            reply = self.client.chat(system, user_message, history)
+        except LMStudioError as error:
+            raise RuntimeError(str(error)) from error
+        self.chat_memory.add("user", message)
+        self.chat_memory.add("assistant", reply)
+        return reply
+
+    def clear_memory(self) -> None:
+        """Clear the selected workspace's saved chat and activity history."""
+        self.chat_memory.clear()
+        self.memory.clear()
+
+    def _chat_file_context(self, message: str) -> str:
+        """Return a named workspace file as context when a user asks about one.
+
+        This is intentionally read-only and requires a filename with an extension;
+        model prompts alone cannot make chat inspect arbitrary files.
+        """
+        match = re.search(
+            r"(?<![\w.-])((?:[A-Za-z0-9_-]+[\\/])*(?:[A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]{1,10})(?![\w.-])",
+            message,
+        )
+        if not match:
+            return ""
+        requested = match.group(1).strip().replace("\\", "/")
+        try:
+            candidate = self.files._path(requested)
+            if not candidate.is_file() and "/" not in requested:
+                matches = [path for path in self.workspace.rglob(requested) if path.is_file()]
+                candidate = matches[0].resolve() if len(matches) == 1 else candidate
+            candidate.relative_to(self.workspace)
+            if not candidate.is_file():
+                return f"\nThe requested file '{requested}' was not found in this workspace."
+            relative = str(candidate.relative_to(self.workspace))
+            self.log("Reading for chat", relative)
+            content = self.files.read_file(relative)
+            return f"\nRead-only file context — {relative}:\n```\n{content}\n```"
+        except (ToolError, OSError, ValueError) as error:
+            return f"\nThe requested file could not be read safely: {error}"
 
     def _system_prompt(self) -> str:
         tools = {

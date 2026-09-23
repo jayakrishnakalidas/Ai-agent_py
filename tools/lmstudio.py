@@ -14,9 +14,11 @@ class LMStudioClient:
         self.api_url = api_url.rstrip("/")
         self.model = model or "local-model"
 
-    def chat(self, system: str, user: str) -> str:
-        payload = json.dumps({"model": self.model, "messages": [
-            {"role": "system", "content": system}, {"role": "user", "content": user}],
+    def chat(self, system: str, user: str, history: list[dict[str, str]] | None = None) -> str:
+        messages = [{"role": "system", "content": system}]
+        messages.extend(history or [])
+        messages.append({"role": "user", "content": user})
+        payload = json.dumps({"model": self.model, "messages": messages,
             "temperature": 0.2}).encode("utf-8")
         request = Request(self.api_url + "/chat/completions", data=payload,
             headers={"Content-Type": "application/json"}, method="POST")

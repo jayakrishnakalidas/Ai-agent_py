@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en" data-theme="classic-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bot Control Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <!-- Left Sidebar (Contacts List) -->
+  <aside id="sidebar">
+    <header class="sidebar-header">
+      <div class="sidebar-user">
+        <div class="avatar main-avatar">🤖</div>
+        <h1>Chats</h1>
+      </div>
+      <div class="sidebar-actions">
+        <button id="addContact" title="Add Contact" class="icon-btn">＋</button>
+      </div>
+    </header>
+    <div class="search-container">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input id="search" placeholder="Search contacts or chat ID...">
+      </div>
+    </div>
+    <div id="contacts" class="contacts-list"></div>
+  </aside>
+
+  <!-- Right Main Chat Section -->
+  <section class="chat" id="chatSection">
+    <header id="chatHeader" class="chat-header">
+      <button id="backBtn" class="back-btn" title="Back to Chats">←</button>
+      <div class="avatar" id="headerAvatar">B</div>
+      <div class="header-info">
+        <strong id="headerTitle">Select a contact</strong>
+        <small id="headerSubtitle">Telegram Bot Panel</small>
+      </div>
+<div class="header-actions">
+  <button class="menu-btn">⋯</button>
+</div>
+      <div class="header-actions">
+        <button id="btnServices" title="Web Services & Pricing" class="pill-btn service-btn">
+          <span>🧩</span> Services
+        </button>
+        <button id="btnPremium" title="Premium Users Manager" class="pill-btn premium-btn">
+          <span>⭐</span> Premium
+        </button>
+        <button id="clearChat" title="Clear Chat History" class="icon-btn danger-hover">🗑️</button>
+        <button id="settings" title="Settings" class="icon-btn">⚙</button>
+      </div>
+    </header>
+
+    <div id="empty" class="empty">
+      <div class="empty-card">
+        <div class="empty-icon">💬</div>
+        <h3>Telegram Bot Control Panel</h3>
+        <p>Select a contact from the left list to view messages or send commands.</p>
+      </div>
+    </div>
+
+    <div id="messages" class="messages-container"></div>
+
+    <footer id="composer" hidden class="chat-composer">
+      <div id="attachMenu" class="attach-menu" hidden>
+        <button type="button" id="optMedia">🖼️ Photos & Videos</button>
+        <button type="button" id="optDocument">📄 Document / Files</button>
+        <button type="button" id="optPoll">📊 Send Poll</button>
+      </div>
+      <input id="fileInput" type="file" multiple hidden>
+      <button id="attach" type="button" class="attach-btn" title="Send files or media">📎</button>
+      <div class="composer-input-wrapper">
+        <div id="files" class="attached-files-list"></div>
+        <textarea id="messageText" placeholder="Type a message..." rows="1"></textarea>
+      </div>
+      <button id="send" type="button" class="send-btn" title="Send Message">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </footer>
+  </section>
+</main>
+
+<!-- Modals & Dialogs -->
+<dialog id="contactDialog">
+  <form method="dialog">
+    <h2>Add Contact</h2>
+    <label>Name<input id="contactName" required placeholder="Alex"></label>
+    <label>Telegram chat ID<input id="contactId" required placeholder="5680521"></label>
+    <label>Username <input id="contactUsername" placeholder="optional"></label>
+    <menu>
+      <button type="button" class="btn-cancel" onclick="document.getElementById('contactDialog').close()">Cancel</button>
+      <button id="saveContact" value="default">Save</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="settingsDialog">
+  <div class="settings">
+    <header>
+      <h2>Settings & Options</h2>
+      <button id="closeSettings" class="close-dialog-btn">×</button>
+    </header>
+    <label>Active Bot<select id="activeBot"></select></label>
+    
+    <section>
+      <h3>🎨 Theme / Panel Appearance</h3>
+      <p class="hint">Select visual color theme for your bot control panel.</p>
+      <label>Select theme:
+        <select id="themeSelect">
+          <option value="classic-dark">🌙 Sleek Dark Mode (Glassmorphism)</option>
+          <option value="classic-light">☀️ Clean Light Mode</option>
+          <option value="telegram-official">✈️ Telegram Official (Classic Blue & Night Dark)</option>
+          <option value="instagram-gradient">📸 Instagram Vibe (Sunset Gradient & Vibrant Pink)</option>
+          <option value="midnight-cyber">🌌 Midnight Cyber (Neon Blue/Purple)</option>
+          <option value="emerald-matrix">🟢 Emerald Matrix (Dark Green)</option>
+          <option value="sunset-gold">🌅 Sunset Gold (Warm Amber)</option>
+          <option value="nordic-frost">❄️ Nordic Frost (Cool Slate & Ice Blue)</option>
+          <option value="tokyo-night">🗼 Tokyo Night (Deep Indigo & Magenta)</option>
+          <option value="crimson-vampire">🍷 Crimson Blood (Dark Red & Charcoal)</option>
+          <option value="dracula-purple">🧛 Dracula Dark (Purple & Pink Accent)</option>
+          <option value="rose-pine">🌹 Rosé Pine (Warm Muted Pink & Ash)</option>
+          <option value="ocean-breeze">🌊 Ocean Breeze (Deep Aqua & Cyan)</option>
+          <option value="synthwave-80s">🌆 Synthwave 80s (Retro Neon Pink & Cyan)</option>
+          <option value="monochrome-oled">⬛ Pure OLED Obsidian (Pitch Black)</option>
+        </select>
+      </label>
+    </section>
+
+    <section>
+      <h3>Bot Keys</h3>
+      <div id="bots"></div>
+      <button class="outline" id="addBot">＋ Add Bot Key</button>
+    </section>
+
+    <section>
+      <h3>Commands for admin only <small id="commandBotName"></small></h3>
+      <div id="commands"></div>
+      <a href="#" id="openAdvancedCommands" class="adv-cmd-link">› Advanced command access</a>
+    </section>
+
+    <section>
+      <h3>Admins <small id="adminBotName"></small></h3>
+      <div id="admins"></div>
+      <button class="outline" id="addAdmin">＋ Add Admin</button>
+    </section>
+
+    <section>
+      <h3>🤖 AI <small id="aiBotName"></small></h3>
+      <p class="hint">Connect to LM Studio to chat users with your local AI model.</p>
+      <div id="aiSettings"></div>
+    </section>
+
+    <section>
+      <h3>📁 Cloud Drive Storage & Quota Settings</h3>
+      <p class="hint">Set default user storage limits and assign premium storage quotas (5GB, 10GB, 15GB, 20GB, 25GB).</p>
+      <div class="drive-default-row">
+        <span>Default Storage Limit (MB):</span>
+        <input id="driveDefaultLimit" type="number" value="500" min="10">
+        <button id="saveDriveDefault" class="outline">Save Default</button>
+      </div>
+      <h4>🌟 Premium User Storage Overrides</h4>
+      <div class="drive-premium-input-row">
+        <input id="drivePremiumUser" placeholder="Telegram User ID (e.g. 5612348212)">
+        <select id="drivePremiumQuota">
+          <option value="500">500 MB</option>
+          <option value="5120">5 GB</option>
+          <option value="10240">10 GB</option>
+          <option value="15360">15 GB</option>
+          <option value="20480">20 GB</option>
+          <option value="25600">25 GB</option>
+        </select>
+        <button id="addDrivePremium" class="outline">＋ Add / Update Premium Quota</button>
+      </div>
+      <div id="drivePremiumList"></div>
+    </section>
+
+    <section>
+      <h3>⚡ Polling / Refresh Speed</h3>
+      <p class="hint">Select Telegram bot polling speed and multi-threading options.</p>
+      <div id="pollingSettings"></div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="servicesDialog">
+  <div class="settings dialog-wide">
+    <header class="dialog-header">
+      <h2>🧩 Web Services Catalog & Pricing</h2>
+      <button id="closeServices" class="close-dialog-btn">×</button>
+    </header>
+
+    <section class="daemon-settings-card" style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+          <span>⚙️</span> Expiry Enforcement & Daemon Thread Interval
+        </h3>
+        <span id="daemonStatusBadge" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid #3b82f6;">
+          ● Interval: 60 sec
+        </span>
+      </div>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin: 0 0 12px 0;">
+        Adjust background daemon frequency for auto-stopping expired paid services, sending 3-day reminders, and processing 11:59 PM scheduled stops.
+      </p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <select id="daemonIntervalSelect" style="flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px; background: #1e293b; color: #fff; border: 1px solid #334155;">
+          <option value="60s">⚡ Every 60 Seconds (1 Min)</option>
+          <option value="5m">⏱ Every 5 Minutes</option>
+          <option value="30m">⏳ Every 30 Minutes</option>
+          <option value="1h">🕐 Every 1 Hour</option>
+          <option value="3h">🕒 Every 3 Hours</option>
+          <option value="5h">🕔 Every 5 Hours</option>
+          <option value="6h">🕕 Every 6 Hours</option>
+          <option value="10h">🕙 Every 10 Hours</option>
+          <option value="12am">🌙 Every Day at 12:00 AM (Midnight)</option>
+        </select>
+        <button type="button" id="btnSaveDaemonInterval" class="pill-btn" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+          Save Interval
+        </button>
+        <button type="button" id="btnRunDaemonNow" class="pill-btn" style="background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+          ⚡ Run Check Now
+        </button>
+      </div>
+    </section>
+
+    <div class="services-list-grid">
+      <!-- WhoOwesMe v1.0 -->
+      <div class="svc-card">
+        <div class="svc-card-header">
+          <h3>💰 WhoOwesMe <small>v1.0</small></h3>
+          <div class="svc-badge-group">
+            <span id="badge_whoowesme" class="svc-badge free">⭕ [free]</span>
+            <button type="button" class="svc-toggle-btn" data-svc="whoowesme">▼ Set Price (₹)</button>
+          </div>
+        </div>
+        <p class="svc-desc">💰 Money Tracker — Track who owes you and who you owe in INR (₹)</p>
+        <div id="moneyCollapse_whoowesme" hidden class="svc-collapse-panel">
+          <div class="svc-collapse-inner">
+            <h4>🏷️ Set Service Pricing & Status</h4>
+            <div class="svc-form-row">
+              <select class="svc-status-select" data-svc="whoowesme">
+                <option value="free">⭕ Free [free]</option>
+                <option value="paid">💎 Paid Service (₹ INR)</option>
+              </select>
+              <input class="svc-price-input" data-svc="whoowesme" type="number" placeholder="Price (₹ INR)">
+              <button type="button" class="svc-save-price-btn" data-svc="whoowesme">Save Price</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Denomination v1.0 -->
+      <div class="svc-card">
+        <div class="svc-card-header">
+          <h3>💵 Denomination <small>v1.0</small></h3>
+          <div class="svc-badge-group">
+            <span id="badge_denomination" class="svc-badge free">⭕ [free]</span>
+            <button type="button" class="svc-toggle-btn" data-svc="denomination">▼ Set Price (₹)</button>
+          </div>
+        </div>
+        <p class="svc-desc">💵 Cash denomination calculator & daily sales reconciliation tracker</p>
+        <div id="moneyCollapse_denomination" hidden class="svc-collapse-panel">
+          <div class="svc-collapse-inner">
+            <h4>🏷️ Set Service Pricing & Status</h4>
+            <div class="svc-form-row">
+              <select class="svc-status-select" data-svc="denomination">
+                <option value="free">⭕ Free [free]</option>
+                <option value="paid">💎 Paid Service (₹ INR)</option>
+              </select>
+              <input class="svc-price-input" data-svc="denomination" type="number" placeholder="Price (₹ INR)">
+              <button type="button" class="svc-save-price-btn" data-svc="denomination">Save Price</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- smssystem v1.0 -->
+      <div class="svc-card">
+        <div class="svc-card-header">
+          <h3>🔐 smssystem <small>v1.0</small></h3>
+          <div class="svc-badge-group">
+            <span id="badge_smssystem" class="svc-badge free">⭕ [free]</span>
+            <button type="button" class="svc-toggle-btn" data-svc="smssystem">▼ Set Price (₹)</button>
+          </div>
+        </div>
+        <p class="svc-desc">🔐 Encrypted SMS System — Chat with end-to-end encryption</p>
+        <div id="moneyCollapse_smssystem" hidden class="svc-collapse-panel">
+          <div class="svc-collapse-inner">
+            <h4>🏷️ Set Service Pricing & Status</h4>
+            <div class="svc-form-row">
+              <select class="svc-status-select" data-svc="smssystem">
+                <option value="free">⭕ Free [free]</option>
+                <option value="paid">💎 Paid Service (₹ INR)</option>
+              </select>
+              <input class="svc-price-input" data-svc="smssystem" type="number" placeholder="Price (₹ INR)">
+              <button type="button" class="svc-save-price-btn" data-svc="smssystem">Save Price</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp AI v1.0 -->
+      <div class="svc-card">
+        <div class="svc-card-header">
+          <h3>💬 WhatsApp AI <small>v1.0</small></h3>
+          <div class="svc-badge-group">
+            <span id="badge_whatsappai" class="svc-badge free">⭕ [free]</span>
+            <button type="button" class="svc-toggle-btn" data-svc="whatsappai">▼ Set Price (₹)</button>
+          </div>
+        </div>
+        <p class="svc-desc">💬 WhatsApp AutoResponder & LM Studio Local AI Chatbot Manager</p>
+        <div id="moneyCollapse_whatsappai" hidden class="svc-collapse-panel">
+          <div class="svc-collapse-inner">
+            <h4>🏷️ Set Service Pricing & Status</h4>
+            <div class="svc-form-row">
+              <select class="svc-status-select" data-svc="whatsappai">
+                <option value="free">⭕ Free [free]</option>
+                <option value="paid">💎 Paid Service (₹ INR)</option>
+              </select>
+              <input class="svc-price-input" data-svc="whatsappai" type="number" placeholder="Price (₹ INR)">
+              <button type="button" class="svc-save-price-btn" data-svc="whatsappai">Save Price</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="premiumDialog">
+  <div class="settings dialog-wide">
+    <header class="dialog-header">
+      <h2>⭐ Premium Users Manager & Service Activation</h2>
+      <button id="closePremium" class="close-dialog-btn">×</button>
+    </header>
+    <section class="prem-add-card">
+      <h3>➕ Add New Premium User</h3>
+      <div class="prem-add-row">
+        <input id="newPremTid" placeholder="Telegram User ID (e.g. 5612348212)">
+        <input id="newPremName" placeholder="Name / Note (e.g. Alex)">
+        <button type="button" id="btnAddPremUser" class="btn-prem-gold">Add Premium (30 Days)</button>
+      </div>
+      <div class="prem-svcs-selection">
+        <div class="prem-svcs-label">Select Paid Services Allowed / Activated for this User:</div>
+        <div class="prem-svcs-checkboxes">
+          <label><input type="checkbox" class="new-prem-svc" value="whoowesme" checked> 💰 WhoOwesMe</label>
+          <label><input type="checkbox" class="new-prem-svc" value="denomination" checked> 💵 Denomination</label>
+          <label><input type="checkbox" class="new-prem-svc" value="smssystem" checked> 🔐 smssystem</label>
+          <label><input type="checkbox" class="new-prem-svc" value="whatsappai" checked> 💬 WhatsApp AI</label>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h3>👥 Active Premium Members & Service Permissions</h3>
+      <div id="premiumUsersContainer" class="premium-users-grid"></div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="botDialog">
+  <form method="dialog">
+    <h2>Add Bot Key</h2>
+    <label>Bot label<input id="botName" required placeholder="Production Bot"></label>
+    <label>Bot token<input id="botToken" required type="password" placeholder="123456:ABC…"></label>
+    <menu>
+      <button type="button" class="btn-cancel" onclick="document.getElementById('botDialog').close()">Cancel</button>
+      <button id="saveBot" value="default">Save</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="advancedCommandsDialog">
+  <div class="settings">
+    <header class="dialog-header">
+      <h2>Advanced command access</h2>
+      <button id="closeAdvancedCommands" class="close-dialog-btn">×</button>
+    </header>
+    <div id="advancedCommandsList"></div>
+  </div>
+</dialog>
+
+<dialog id="pollDialog">
+  <form method="dialog" id="pollForm">
+    <h2>📊 Create Poll</h2>
+    <label>Question<input id="pollQuestion" required placeholder="Ask a question…"></label>
+    <div id="pollOptions">
+      <label>Option 1<input class="poll-opt" required placeholder="Option 1"></label>
+      <label>Option 2<input class="poll-opt" required placeholder="Option 2"></label>
+    </div>
+    <button type="button" class="outline" id="addPollOption">＋ Add Option</button>
+    <menu>
+      <button type="button" id="closePoll" class="btn-cancel">Cancel</button>
+      <button id="sendPollBtn" value="default">Send Poll</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
