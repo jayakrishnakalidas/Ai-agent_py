@@ -7,6 +7,11 @@ A transparent local coding agent using [LM Studio](https://lmstudio.ai/)'s OpenA
 1. In LM Studio, load a model and start the local server (default: `http://127.0.0.1:1234`).
 2. Run `python agent.py /path/to/your/project`, or run `python agent.py` and enter a workspace.
 3. Give the agent a request. It prints every planned, read, write, folder, and Python-execution action.
+4. usage: agent.py [-h] [--api-url API_URL] [--model MODEL]
+                [--timeout TIMEOUT] [--web] [--host HOST] [--port PORT]
+                [--mode {safe,normal,autonomous}]
+                [workspace]
+   example:python agent.py --api-url http://192.168.137.1:1234/v1/ --web /storage/emulated/0/ACode/ai-agent/project1 --timeout 900             
 
 ### Browser interface
 
