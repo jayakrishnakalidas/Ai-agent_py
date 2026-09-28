@@ -1,0 +1,4 @@
+# Android folders this MCP listener may access through ADB.
+# Add an absolute Android shared-storage path here to permit it.
+/sdcard/Download
+/sdcard/Documents

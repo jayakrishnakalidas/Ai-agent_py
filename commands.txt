@@ -2,6 +2,24 @@
 # Remove an action here to disable it.
 list_files
 read_file
+search_files
+find_symbol
 write_file
+replace_text
+insert_text
+delete_text
+patch_file
 create_folder
+delete_file
+list_backups
+restore_backup
+check_syntax
+run_tests
+run_command
+git_status
+git_diff
+git_log
+git_add
+git_commit
 run_python
+

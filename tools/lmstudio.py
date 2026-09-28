@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -10,9 +11,10 @@ class LMStudioError(Exception):
 
 
 class LMStudioClient:
-    def __init__(self, api_url: str, model: str | None = None) -> None:
+    def __init__(self, api_url: str, model: str | None = None, timeout: int | None = None) -> None:
         self.api_url = api_url.rstrip("/")
         self.model = model or "local-model"
+        self.timeout = timeout or int(os.getenv("LM_STUDIO_TIMEOUT", "100"))
 
     def chat(self, system: str, user: str, history: list[dict[str, str]] | None = None) -> str:
         messages = [{"role": "system", "content": system}]
@@ -23,10 +25,13 @@ class LMStudioClient:
         request = Request(self.api_url + "/chat/completions", data=payload,
             headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urlopen(request, timeout=90) as response:
+            with urlopen(request, timeout=self.timeout) as response:
                 data = json.loads(response.read().decode("utf-8"))
             return data["choices"][0]["message"]["content"]
         except HTTPError as error:
             raise LMStudioError(f"HTTP {error.code}: {error.read().decode('utf-8', 'replace')[:300]}") from error
         except (URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as error:
-            raise LMStudioError("Could not contact LM Studio. Start its local server and check --api-url.") from error
+            raise LMStudioError(
+                f"Could not contact LM Studio or the request exceeded the {self.timeout}-second timeout. "
+                "Check the server, or start the agent with a larger --timeout value."
+            ) from error
